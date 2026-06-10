@@ -33,11 +33,13 @@ It wrote the code, ran away, and now the game is unplayable.
 
 Describe your fixed game in numbered steps so a reader can follow along without watching a video:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. Start the app with `python -m streamlit run app.py`. It opens in your browser.
+2. In the sidebar, pick a difficulty. The range and number of attempts update to match.
+3. Open the "Developer Debug Info" section to see the secret number if you want to check the hints.
+4. Type a guess and click Submit. If the guess is too high it now says "Go LOWER", and if it's too low it says "Go HIGHER" (these used to be backwards).
+5. Keep guessing. The secret stays the same number every turn now, so the hints are consistent until you get it.
+6. When you guess right, you win and your final score is shown.
+7. Click New Game to reset and play again.
 
 **Screenshot** *(optional)*: <!-- Insert a screenshot of your fixed, winning game here -->
 
