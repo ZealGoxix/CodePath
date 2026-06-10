@@ -109,12 +109,16 @@ if submit:
     else:
         st.session_state.history.append(guess_int)
 
-        if st.session_state.attempts % 2 == 0:
-            secret = str(st.session_state.secret)
-        else:
-            secret = st.session_state.secret
+        # FIXME: Logic breaks here -> the old code turned the secret into a
+        #        string on every even attempt, so an int guess was compared to
+        #        a str secret and the hints went haywire.
+        # FIX: Pair-debugged this with the AI assistant. Always use the secret
+        #      as the int that is stored in session_state so the type stays
+        #      stable across reruns.
+        secret = st.session_state.secret
 
-        outcome, message = check_guess(guess_int, secret)
+        outcome = check_guess(guess_int, secret)
+        message = HINT_MESSAGES.get(outcome, "")
 
         if show_hint:
             st.warning(message)
