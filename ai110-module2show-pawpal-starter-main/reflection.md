@@ -102,7 +102,7 @@ These are small but they make the app more honest and easier to trust.
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+- What part of this project are you most satisfied with?.
 
 **b. What you would improve**
 
