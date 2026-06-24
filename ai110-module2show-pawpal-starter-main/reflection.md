@@ -89,13 +89,39 @@ rather keep it simple and clear than make it complicated for a small gain.
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+I used my AI coding assistant through the whole project, but for different jobs at each step:
+
+- **Brainstorming the design** — at the start I described the app and had it help me come
+  up with the four classes and a Mermaid diagram.
+- **Writing code** — I had it flesh out the class methods, like the sorting and the
+  recurring-task logic, and it showed me how to use `sorted()` with a lambda and how to
+  add days with `timedelta`.
+- **Writing tests** — I asked it for a test plan and to help draft the test functions,
+  including edge cases I might not have thought of, like a pet with no tasks.
+- **Cleaning up** — it helped me add docstrings and write the README.
+
+The most helpful prompts were the **specific, "how do I do this one thing"** questions
+(like "how do I sort `HH:MM` strings?") and asking it to **review a file and point out
+problems**. Vague questions gave vague answers; specific ones gave me something I could
+actually use.
+
+The features I leaned on most were **agent/edit mode** (letting it edit files directly so
+I could see real changes instead of copy-pasting) and **chat with files attached**, so it
+could see my actual code before answering.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?.
+One time I didn't just accept what the AI gave me was with **conflict detection**. It
+offered a fancier version that compared full time ranges (start + duration) to catch
+overlaps. It was clever, but it added a lot of extra logic and was harder to read. I chose
+the simpler "same start time" version instead, because it was easy to understand and good
+enough for what the app needs right now. I wrote down that tradeoff in section 2b so I
+don't forget it later.
+
+To check the AI's suggestions, I didn't just trust them I **ran the code**. I'd run
+`main.py` to watch the output, and I leaned on my tests with `python -m pytest`. If a test
+went red, I'd ask the AI whether the bug was in my test or my actual logic, then fix the
+real problem. Seeing it work (or fail) with my own eyes is what gave me confidence.
 
 ---
 
@@ -129,7 +155,7 @@ that clash. So I feel good that the core logic does what I think it does.
 
 The reason it's not 5 stars is that my conflict checker only catches tasks that start at
 the *exact* same time. If I had more time, the first edge case I'd test is **overlapping
-tasks** — like a 30-minute walk at 08:00 bumping into a feeding at 08:15. I'd also want to
+tasks** like a 30-minute walk at 08:00 bumping into a feeding at 08:15. I'd also want to
 test weird inputs, like a task with a negative or zero duration, and a task with a badly
 formatted time, to make sure the app handles junk data without crashing.
 
@@ -139,12 +165,31 @@ formatted time, to make sure the app handles junk data without crashing.
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?.
+The part I'm most happy with is the **recurring task feature**. It felt like real
+"smart" behavior you tick off today's walk and tomorrow's walk just shows up on its own.
+I also like that the whole thing is split into four clear classes, so when something broke
+I usually knew exactly where to look. And keeping the logic (`pawpal_system.py`) separate
+from the UI (`app.py`) meant I could test the brains of the app in the terminal without
+fighting with Streamlit.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+If I did another round, I'd make the **conflict checker smarter** so it catches tasks that
+overlap, not just ones that start at the exact same minute. I'd also let the user **mark
+tasks done and edit or delete them in the app** (right now you can mostly just add them),
+and I'd **save the data to a file** so your pets and tasks don't disappear when you close
+the app.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+The biggest thing I learned is what it feels like to be the **"lead architect"** instead of
+just a coder. The AI could write code fast, but it didn't know what I actually wanted that
+was my job. I made the calls on which classes to use and which suggestions to keep or toss
+(like picking the simple conflict checker over the fancy one). The AI was great at the
+"how," but I had to own the "what" and the "why."
+
+A small trick that helped a lot was using **separate chat sessions for each phase** —
+one for design, one for building, one for testing. It kept each conversation focused, so
+the AI wasn't dragging old, unrelated context into a new task and I could think about one
+thing at a time. Overall I learned that AI is a really strong helper, but it works best when
+I stay in charge, ask specific questions, and always check its work by actually running it.

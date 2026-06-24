@@ -105,11 +105,16 @@ else:
         )
         st.success(f"Added '{description}' for {chosen_pet_name}.")
 
-# Show every task we know about, grouped by pet.
+scheduler = Scheduler()
+
+# Show every task we know about, sorted by time of day so it reads like a timeline.
 if any(p.task_count() for p in pets):
-    st.write("Current tasks:")
+    st.write("Current tasks (sorted by time):")
+    # Pair each task back up with its pet after sorting by time.
+    pairs = owner.get_all_tasks()
+    pairs_by_time = sorted(pairs, key=lambda pt: pt[1].time or "99:99")
     rows = []
-    for pet, task in owner.get_all_tasks():
+    for pet, task in pairs_by_time:
         rows.append(
             {
                 "Pet": pet.name,
@@ -132,6 +137,37 @@ if st.button("Generate schedule"):
     if not any(p.task_count() for p in pets):
         st.warning("Add at least one task first.")
     else:
-        scheduler = Scheduler()
-        plan_text = scheduler.explain_plan(owner)
-        st.code(plan_text)
+        # 1. Warn about any tasks scheduled at the same time.
+        conflicts = scheduler.detect_conflicts(owner)
+        for warning in conflicts:
+            st.warning(f"⚠️ {warning}")
+
+        # 2. Build the plan and show what made the cut.
+        chosen, skipped = scheduler.build_plan(owner)
+
+        if chosen:
+            st.success(f"Here's today's plan for {owner.name}!")
+            plan_rows = [
+                {
+                    "Time": task.time or "anytime",
+                    "Pet": pet.name,
+                    "Task": task.description,
+                    "Minutes": task.duration_minutes,
+                    "Priority": task.priority,
+                }
+                for pet, task in chosen
+            ]
+            st.table(plan_rows)
+
+            used = sum(task.duration_minutes for _, task in chosen)
+            st.caption(f"Time used: {used} of {owner.minutes_available} minutes available.")
+        else:
+            st.info("Nothing fits in the time available. Try adding more minutes.")
+
+        # 3. Be honest about anything that didn't fit.
+        if skipped:
+            left_off = ", ".join(
+                f"{pet.name}'s {task.description} ({task.duration_minutes} min)"
+                for pet, task in skipped
+            )
+            st.warning(f"Left off (not enough time): {left_off}")

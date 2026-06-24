@@ -12,6 +12,18 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 
 Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
 
+## ✨ Features
+
+PawPal+ does more than just list tasks — it has real scheduling smarts:
+
+- **Add owners, pets, and tasks** — store basic info plus each task's time, duration, priority, and how often it repeats.
+- **Smart daily plan** — picks tasks by priority and fits them into the minutes you actually have (`Scheduler.build_plan`).
+- **Sort by time** — view tasks as a timeline, earliest first (`Scheduler.sort_by_time`).
+- **Filtering** — show just one pet's tasks, or just the done/not-done ones (`Scheduler.filter_by_pet`, `filter_by_status`).
+- **Daily / weekly recurrence** — finishing a repeating task auto-creates the next one with the right date (`Task.next_occurrence`, `Pet.mark_task_complete`).
+- **Conflict warnings** — flags tasks scheduled at the same time so you're not double-booked (`Scheduler.detect_conflicts`).
+- **Honest explanations** — the plan tells you what got left off and why (`Scheduler.explain_plan`).
+
 ## What you will build
 
 Your final app should:
@@ -140,12 +152,58 @@ tests/test_pawpal.py::test_weekly_task_next_due_date_is_seven_days_later PASSED 
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Run the app with:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+```bash
+cd ai110-module2show-pawpal-starter-main
+streamlit run app.py
+```
+
+### What you can do in the app
+
+- **Set up the owner** — enter your name and how many minutes you have today.
+- **Add pets** — name, species, and (optional) breed. Your pets stay in memory as you work.
+- **Add tasks to a pet** — pick the pet, then enter the task, time of day, duration, priority, and how often it repeats.
+- **See your tasks** — they show up in a table sorted by time of day.
+- **Generate the schedule** — PawPal+ builds the day's plan, warns about clashes, and lists anything that didn't fit.
+
+### Example workflow
+
+1. Enter owner **Jordan** with **90 minutes** available.
+2. Add two pets: **Mochi** (dog) and **Luna** (cat).
+3. Add tasks — Mochi's morning walk at 08:00, breakfast at 08:45, evening fetch at 18:00; Luna's medicine at 08:00 and brushing at 19:00.
+4. Click **Generate schedule**.
+5. PawPal+ shows the plan, **warns** that Mochi's walk and Luna's medicine both sit at 08:00, and notes that the 45-minute evening fetch was **left off** because the day ran out of time.
+
+### Scheduler behaviors you'll see
+
+- **Sorting** — tasks are ordered by priority for the plan, and by time of day in the task table.
+- **Conflict warnings** — same-time tasks trigger a yellow warning banner.
+- **Time budgeting** — only tasks that fit the available minutes make the plan; the rest are listed as "left off."
+- **Recurrence** — completing a daily/weekly task lines up the next one automatically.
+
+### Sample CLI output (from `python main.py`)
+
+```
+Today's Schedule for Jordan (90 min available)
+================================================
+  Luna: [ ] 08:00 - Give medicine (5 min) [priority: high]
+  Mochi: [ ] 08:45 - Breakfast (10 min) [priority: high]
+  Mochi: [ ] 08:00 - Morning walk (30 min) [priority: high]
+  Luna: [ ] 19:00 - Brush fur (15 min) [priority: medium]
+
+Left off (not enough time):
+  Mochi: Evening fetch needs 45 min
+
+Time used: 60/90 min
+
+All of Mochi's tasks, sorted by time of day:
+  [ ] 08:00 - Morning walk (30 min) [priority: high]
+  [ ] 08:45 - Breakfast (10 min) [priority: high]
+  [ ] 18:00 - Evening fetch (45 min) [priority: low]
+
+Conflict check:
+  [!] Conflict at 08:00: Mochi's Morning walk, Luna's Give medicine are scheduled at the same time.
+```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->

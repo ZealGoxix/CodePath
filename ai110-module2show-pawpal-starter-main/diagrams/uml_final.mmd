@@ -1,0 +1,59 @@
+classDiagram
+    %% PawPal+ final class design (matches pawpal_system.py).
+    %% Owner has Pets, Pets have Tasks, the Scheduler turns tasks into a daily plan.
+
+    class Owner {
+        +str name
+        +int minutes_available
+        +list~str~ preferences
+        +list~Pet~ pets
+        +add_pet(pet) None
+        +list_pets() list
+        +get_all_tasks() list
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +list~Task~ tasks
+        +add_task(task) None
+        +get_tasks() list
+        +pending_tasks() list
+        +task_count() int
+        +mark_task_complete(task) Task
+    }
+
+    class Task {
+        +str description
+        +str time
+        +str frequency
+        +int duration_minutes
+        +str priority
+        +str category
+        +date due_date
+        +bool completed
+        +mark_complete() None
+        +mark_incomplete() None
+        +next_occurrence() Task
+        +priority_score() int
+        +is_high_priority() bool
+    }
+
+    class Scheduler {
+        +int minutes_available
+        +get_tasks_from_owner(owner) list
+        +sort_by_priority(pairs) list
+        +sort_by_time(tasks) list
+        +filter_by_status(tasks, completed) list
+        +filter_by_pet(owner, pet_name) list
+        +detect_conflicts(owner) list
+        +build_plan(owner) tuple
+        +explain_plan(owner) str
+    }
+
+    Owner "1" --> "many" Pet : owns
+    Pet "1" --> "many" Task : has
+    Pet ..> Task : creates next occurrence
+    Scheduler ..> Owner : reads tasks and time from
+    Scheduler ..> Task : sorts, filters, schedules
