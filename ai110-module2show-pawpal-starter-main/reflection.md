@@ -79,7 +79,7 @@ These are small but they make the app more honest and easier to trust.
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+- How did you evaluate or verify what the AI suggested?.
 
 ---
 
