@@ -60,13 +60,28 @@ These are small but they make the app more honest and easier to trust.
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+My scheduler looks at two main things: how much **time** the owner has today, and how
+**important** each task is. When I build the plan I sort tasks so the high-priority ones
+come first, and if two tasks are equally important I put the quicker one first. Then I
+add tasks one by one until the time runs out.
+
+I picked time and priority as the most important because that's what a busy owner
+actually worries about: "I only have an hour, so what really needs to happen?" Things
+like the exact time of day matter too, but they're more of a "nice to have," so I use
+those for sorting and showing the plan, not for deciding what makes the cut.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+One tradeoff I made is in how my conflict checker works. It only flags two tasks as
+clashing if they start at the **exact same time** (like both at 08:00). It does *not*
+look at how long each task lasts, so a 30-minute walk at 08:00 and a feeding at 08:15
+won't be flagged, even though they really do overlap in real life.
+
+I think this is a fair tradeoff for now. Checking exact start times is simple, easy to
+read, and fast, and it still catches the most obvious "I can't be in two places at once"
+problems. Comparing full time ranges would be more accurate, but it adds a lot more
+fiddly logic. Since PawPal+ is meant to be a helpful nudge and not a strict calendar, I'd
+rather keep it simple and clear than make it complicated for a small gain.
 
 ---
 

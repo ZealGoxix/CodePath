@@ -7,21 +7,28 @@ Four classes work together:
 - Scheduler: the "brain" that gathers tasks and builds a daily plan.
 """
 
+from datetime import date, timedelta
+
 # How important each priority word is. Bigger number = do it sooner.
 PRIORITY_RANK = {"high": 3, "medium": 2, "low": 1}
+
+# How far ahead to push a repeating task when it's done.
+FREQUENCY_STEP = {"daily": timedelta(days=1), "weekly": timedelta(days=7)}
 
 
 class Task:
     """Represents a single activity (description, time, frequency, done-or-not)."""
 
     def __init__(self, description, time=None, frequency="daily",
-                 duration_minutes=15, priority="medium", category="general"):
+                 duration_minutes=15, priority="medium", category="general",
+                 due_date=None):
         self.description = description
         self.time = time                       # preferred time, e.g. "08:00" (or None)
-        self.frequency = frequency             # e.g. "daily", "weekly"
+        self.frequency = frequency             # e.g. "daily", "weekly", "once"
         self.duration_minutes = duration_minutes
         self.priority = priority               # "low" / "medium" / "high"
         self.category = category               # e.g. "walk", "feeding", "meds"
+        self.due_date = due_date               # date this is due (or None for today)
         self.completed = False                 # starts as not done
 
     def mark_complete(self):
@@ -31,6 +38,22 @@ class Task:
     def mark_incomplete(self):
         """Mark this task as not done (handy for the next day)."""
         self.completed = False
+
+    def next_occurrence(self):
+        """Make the next copy of a repeating task, or None if it doesn't repeat."""
+        step = FREQUENCY_STEP.get(self.frequency)
+        if step is None:
+            return None                        # one-off task: nothing to repeat
+        base = self.due_date or date.today()
+        return Task(
+            self.description,
+            time=self.time,
+            frequency=self.frequency,
+            duration_minutes=self.duration_minutes,
+            priority=self.priority,
+            category=self.category,
+            due_date=base + step,              # today + 1 day (daily) or + 7 (weekly)
+        )
 
     def priority_score(self):
         """Turn the priority word into a number so tasks can be sorted."""
@@ -75,6 +98,14 @@ class Pet:
     def task_count(self):
         """Return how many tasks this pet has."""
         return len(self.tasks)
+
+    def mark_task_complete(self, task):
+        """Mark a task done and, if it repeats, line up the next one automatically."""
+        task.mark_complete()
+        next_task = task.next_occurrence()
+        if next_task is not None:
+            self.add_task(next_task)
+        return next_task                       # the new task, or None if it was one-off
 
     def __str__(self):
         breed = f" ({self.breed})" if self.breed else ""
@@ -131,6 +162,45 @@ class Scheduler:
             pairs,
             key=lambda pair: (-pair[1].priority_score(), pair[1].duration_minutes),
         )
+
+    def sort_by_time(self, tasks):
+        """Order Task objects by their time of day ('HH:MM'); 'anytime' tasks go last."""
+        # "99:99" sorts after any real "HH:MM" string, so timeless tasks land at the end.
+        return sorted(tasks, key=lambda task: task.time or "99:99")
+
+    def filter_by_status(self, tasks, completed):
+        """Return only the tasks whose done/not-done status matches `completed`."""
+        return [task for task in tasks if task.completed == completed]
+
+    def filter_by_pet(self, owner, pet_name):
+        """Return the tasks belonging to the pet with this name."""
+        for pet in owner.list_pets():
+            if pet.name == pet_name:
+                return pet.get_tasks()
+        return []                              # no pet by that name
+
+    def detect_conflicts(self, owner):
+        """Find tasks scheduled at the same time and return a list of warning strings.
+
+        Lightweight on purpose: it only compares exact start times and returns
+        warnings instead of raising errors, so the app never crashes over a clash.
+        """
+        by_time = {}
+        for pet, task in owner.get_all_tasks():
+            if task.completed or not task.time:
+                continue                       # skip done tasks and "anytime" tasks
+            by_time.setdefault(task.time, []).append((pet, task))
+
+        warnings = []
+        for time_str in sorted(by_time):
+            items = by_time[time_str]
+            if len(items) > 1:
+                clashing = ", ".join(f"{pet.name}'s {task.description}"
+                                     for pet, task in items)
+                warnings.append(
+                    f"Conflict at {time_str}: {clashing} are scheduled at the same time."
+                )
+        return warnings
 
     def build_plan(self, owner):
         """Pick and order tasks that fit inside the owner's available time.
