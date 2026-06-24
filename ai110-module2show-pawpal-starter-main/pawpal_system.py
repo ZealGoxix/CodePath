@@ -43,8 +43,8 @@ class Task:
     def __str__(self):
         """Readable one-line version of the task."""
         when = self.time if self.time else "anytime"
-        check = "✓" if self.completed else " "
-        return (f"[{check}] {when} — {self.description} "
+        check = "x" if self.completed else " "
+        return (f"[{check}] {when} - {self.description} "
                 f"({self.duration_minutes} min) [priority: {self.priority}]")
 
     def __repr__(self):

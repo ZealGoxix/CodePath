@@ -44,30 +44,45 @@ pip install -r requirements.txt
 
 ## 🖥️ Sample Output
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
+Running `python main.py` builds a small example (one owner, two pets, five tasks)
+and prints today's schedule. The scheduler orders tasks by priority, fits them into
+the 90 minutes available, and explains anything it had to leave off:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+Today's Schedule for Jordan (90 min available)
+================================================
+  Luna: [ ] 09:00 - Give medicine (5 min) [priority: high]
+  Mochi: [ ] 08:45 - Breakfast (10 min) [priority: high]
+  Mochi: [ ] 08:00 - Morning walk (30 min) [priority: high]
+  Luna: [ ] 19:00 - Brush fur (15 min) [priority: medium]
+
+Left off (not enough time):
+  Mochi: Evening fetch needs 45 min
+
+Time used: 60/90 min
 ```
 
 ## 🧪 Testing PawPal+
 
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+# Run the full test suite from inside this project folder:
+cd ai110-module2show-pawpal-starter-main
+python -m pytest
 ```
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\Users\15045\Desktop\CodePath\ai110-module2show-pawpal-starter-main
+collected 3 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 33%]
+tests/test_pawpal.py::test_adding_task_increases_pet_task_count PASSED   [ 66%]
+tests/test_pawpal.py::test_scheduler_skips_tasks_that_do_not_fit PASSED  [100%]
+
+============================== 3 passed in 0.05s ==============================
 ```
 
 ## 📐 Smarter Scheduling
