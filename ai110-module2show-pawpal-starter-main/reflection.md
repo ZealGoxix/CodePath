@@ -103,13 +103,35 @@ rather keep it simple and clear than make it complicated for a small gain.
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+I wrote 12 small tests that check the parts of the app I care about most:
+
+- **Tasks:** marking a task done actually flips it to done, and adding a task to a pet
+  bumps that pet's task count up.
+- **Sorting:** tasks come back in time order, with the "anytime" ones at the end.
+- **Filtering:** I can pull out just the done (or not-done) tasks, or just one pet's tasks.
+- **Recurring tasks:** finishing a daily task makes a fresh copy for tomorrow, a weekly
+  task makes one for a week later, and a one-time task doesn't make a copy at all.
+- **Conflicts:** two tasks at the same time get flagged, and tasks at different times
+  don't get flagged by mistake.
+- **Empty case:** an owner with no tasks still gets a valid (empty) plan instead of
+  crashing.
+
+These felt important because they're the things a real pet owner would actually rely on.
+If sorting or the recurring logic quietly broke, the daily plan would be wrong and the
+owner wouldn't know. Testing them means I can change the code later and quickly see if I
+broke anything.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+I'd give myself about **4 out of 5 stars**. All 12 tests pass, and they cover both the
+normal "everything works" cases and a few tricky ones like an empty schedule and tasks
+that clash. So I feel good that the core logic does what I think it does.
+
+The reason it's not 5 stars is that my conflict checker only catches tasks that start at
+the *exact* same time. If I had more time, the first edge case I'd test is **overlapping
+tasks** — like a 30-minute walk at 08:00 bumping into a feeding at 08:15. I'd also want to
+test weird inputs, like a task with a negative or zero duration, and a task with a badly
+formatted time, to make sure the app handles junk data without crashing.
 
 ---
 

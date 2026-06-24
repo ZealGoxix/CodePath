@@ -91,24 +91,39 @@ cd ai110-module2show-pawpal-starter-main
 python -m pytest
 ```
 
+**What the tests cover** (12 tests in `tests/test_pawpal.py`):
+
+- **Tasks** — marking a task complete flips its status; adding a task bumps a pet's task count.
+- **Sorting** — tasks come back in time order ("anytime" tasks last).
+- **Filtering** — splitting tasks by done/not-done status and by pet.
+- **Recurring tasks** — finishing a daily task auto-creates tomorrow's copy, a weekly task creates one a week later, and a one-off task makes no copy.
+- **Conflict detection** — two tasks at the same time get flagged; tasks at different times don't.
+- **Edge cases** — an owner with no tasks still gets a valid (empty) plan instead of an error.
+
+**Confidence level: ⭐⭐⭐⭐☆ (4 / 5)** — all the core behaviors and the obvious edge cases pass. I dropped one star because conflict detection only checks exact start times (not overlapping durations), so I'd want more time-overlap tests before calling it bullet-proof.
+
 Sample test output:
 
 ```
 ============================= test session starts =============================
 platform win32 -- Python 3.14.2, pytest-9.0.3, pluggy-1.6.0
 rootdir: C:\Users\15045\Desktop\CodePath\ai110-module2show-pawpal-starter-main
-collected 8 items
+collected 12 items
 
-tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 12%]
-tests/test_pawpal.py::test_adding_task_increases_pet_task_count PASSED   [ 25%]
-tests/test_pawpal.py::test_scheduler_skips_tasks_that_do_not_fit PASSED  [ 37%]
-tests/test_pawpal.py::test_sort_by_time_orders_by_time_of_day PASSED     [ 50%]
-tests/test_pawpal.py::test_filter_by_status_returns_only_matching_tasks PASSED [ 62%]
-tests/test_pawpal.py::test_completing_daily_task_creates_next_occurrence PASSED [ 75%]
-tests/test_pawpal.py::test_one_off_task_does_not_repeat PASSED           [ 87%]
-tests/test_pawpal.py::test_detect_conflicts_flags_same_time_tasks PASSED [100%]
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [  8%]
+tests/test_pawpal.py::test_adding_task_increases_pet_task_count PASSED   [ 16%]
+tests/test_pawpal.py::test_scheduler_skips_tasks_that_do_not_fit PASSED  [ 25%]
+tests/test_pawpal.py::test_sort_by_time_orders_by_time_of_day PASSED     [ 33%]
+tests/test_pawpal.py::test_filter_by_status_returns_only_matching_tasks PASSED [ 41%]
+tests/test_pawpal.py::test_completing_daily_task_creates_next_occurrence PASSED [ 50%]
+tests/test_pawpal.py::test_one_off_task_does_not_repeat PASSED           [ 58%]
+tests/test_pawpal.py::test_detect_conflicts_flags_same_time_tasks PASSED [ 66%]
+tests/test_pawpal.py::test_owner_with_no_tasks_makes_empty_plan PASSED   [ 75%]
+tests/test_pawpal.py::test_no_conflict_when_times_differ PASSED          [ 83%]
+tests/test_pawpal.py::test_daily_task_next_due_date_is_exactly_one_day_later PASSED [ 91%]
+tests/test_pawpal.py::test_weekly_task_next_due_date_is_seven_days_later PASSED [100%]
 
-============================== 8 passed in 0.07s ==============================
+============================== 12 passed in 0.06s ==============================
 ```
 
 ## 📐 Smarter Scheduling

@@ -1,5 +1,7 @@
 """Quick tests for the most important PawPal+ behaviors."""
 
+from datetime import date, timedelta
+
 from pawpal_system import Owner, Pet, Task, Scheduler
 
 
@@ -101,3 +103,49 @@ def test_detect_conflicts_flags_same_time_tasks():
 
     assert len(warnings) == 1
     assert "08:00" in warnings[0]
+
+
+# --- Edge cases -----------------------------------------------------------
+
+def test_owner_with_no_tasks_makes_empty_plan():
+    """An owner with a pet but no tasks should get an empty plan, not an error."""
+    owner = Owner("Jordan", minutes_available=60)
+    owner.add_pet(Pet("Mochi", species="dog"))   # pet exists, but no tasks
+
+    scheduled, skipped = Scheduler().build_plan(owner)
+
+    assert scheduled == []
+    assert skipped == []
+
+
+def test_no_conflict_when_times_differ():
+    """Tasks at different times should produce no warnings."""
+    owner = Owner("Jordan", minutes_available=120)
+    pet = Pet("Mochi", species="dog")
+    pet.add_task(Task("Morning walk", time="08:00"))
+    pet.add_task(Task("Evening fetch", time="18:00"))
+    owner.add_pet(pet)
+
+    assert Scheduler().detect_conflicts(owner) == []
+
+
+def test_daily_task_next_due_date_is_exactly_one_day_later():
+    """The auto-created daily copy should be due exactly one day after the original."""
+    pet = Pet("Mochi", species="dog")
+    walk = Task("Morning walk", time="08:00", frequency="daily", due_date=date.today())
+    pet.add_task(walk)
+
+    next_task = pet.mark_task_complete(walk)
+
+    assert next_task.due_date == walk.due_date + timedelta(days=1)
+
+
+def test_weekly_task_next_due_date_is_seven_days_later():
+    """A weekly task's copy should land seven days after the original."""
+    pet = Pet("Luna", species="cat")
+    bath = Task("Bath", time="10:00", frequency="weekly", due_date=date.today())
+    pet.add_task(bath)
+
+    next_task = pet.mark_task_complete(bath)
+
+    assert next_task.due_date == bath.due_date + timedelta(days=7)
