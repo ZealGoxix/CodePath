@@ -2,15 +2,56 @@
 
 ## 1. System Design
 
+**Three core actions a user can do**
+
+After reading the scenario, I picked the three things a pet owner most needs the app to do:
+
+1. **Add a pet (and their own info).** The owner types in who they are, how much
+   free time they have today, and adds one or more pets with basic details.
+2. **Add a care task to a pet.** For each pet they add tasks like a walk, feeding,
+   or medicine. Every task has a name, how long it takes, and how important it is.
+3. **Get a daily plan.** The app looks at all the tasks and the time available,
+   then builds a to-do list for the day in a sensible order and explains its choices.
+
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+I went with four classes. Each one is in charge of one clear thing, which keeps the
+app easy to follow:
+
+- **Owner** — the person using the app. Holds their name, how many minutes they have
+  today, their preferences (like "walks in the morning"), and the list of pets they
+  own. It can add a pet and list its pets.
+- **Pet** — one animal. Holds its name, species, and breed, plus the list of care
+  tasks that belong to it. It can add a task and hand back its tasks.
+- **CareTask** — a single thing that needs doing (walk, feeding, meds, etc.). Holds
+  the title, how many minutes it takes, its priority, a category, and an optional
+  preferred time. It can turn its priority word into a number and say whether it's
+  high priority.
+- **Scheduler** — the "brain." It takes the tasks and the time limit, sorts them by
+  importance, and builds a plan that fits the available time. It can also explain why
+  the plan looks the way it does.
+
+The relationships are simple: an **Owner has many Pets**, a **Pet has many CareTasks**,
+and the **Scheduler reads the tasks and the time limit** to make the plan. The full
+diagram is in [diagrams/uml.mmd](diagrams/uml.mmd).
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+I had the AI assistant review my `pawpal_system.py` skeleton and look for missing links
+or weak spots. Two things stood out:
+
+1. **The plan couldn't tell you which pet a task belonged to.** In my first draft the
+   Scheduler just took a flat list of tasks, so a plan line could say "Walk" but not
+   "Mochi's walk." With more than one pet that gets confusing. **Change:** I plan to
+   have `build_plan` work from the Owner (or tag each task with its pet's name) so the
+   final plan can say whose task it is. I noted this so I remember it when I write the
+   real logic.
+2. **A task longer than the whole day's time would just silently disappear.** If a
+   task takes more minutes than the owner has, the early skeleton would have dropped it
+   with no warning. **Change:** the `explain_plan` method will call out tasks that got
+   left off and why, so nothing vanishes without a reason the owner can see.
+
+These are small but they make the app more honest and easier to trust.
 
 ---
 
