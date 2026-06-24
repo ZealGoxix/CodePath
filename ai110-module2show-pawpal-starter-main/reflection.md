@@ -22,16 +22,16 @@ app easy to follow:
   today, their preferences (like "walks in the morning"), and the list of pets they
   own. It can add a pet and list its pets.
 - **Pet** — one animal. Holds its name, species, and breed, plus the list of care
-  tasks that belong to it. It can add a task and hand back its tasks.
-- **CareTask** — a single thing that needs doing (walk, feeding, meds, etc.). Holds
-  the title, how many minutes it takes, its priority, a category, and an optional
-  preferred time. It can turn its priority word into a number and say whether it's
-  high priority.
+  tasks that belong to it. It can add a task, hand back its tasks, and count them.
+- **Task** — a single thing that needs doing (walk, feeding, meds, etc.). Holds the
+  description, the time of day, how often it repeats (frequency), how many minutes it
+  takes, its priority, a category, and whether it's done yet. It can mark itself
+  complete, turn its priority word into a number, and say whether it's high priority.
 - **Scheduler** — the "brain." It takes the tasks and the time limit, sorts them by
   importance, and builds a plan that fits the available time. It can also explain why
   the plan looks the way it does.
 
-The relationships are simple: an **Owner has many Pets**, a **Pet has many CareTasks**,
+The relationships are simple: an **Owner has many Pets**, a **Pet has many Tasks**,
 and the **Scheduler reads the tasks and the time limit** to make the plan. The full
 diagram is in [diagrams/uml.mmd](diagrams/uml.mmd).
 
@@ -42,14 +42,15 @@ or weak spots. Two things stood out:
 
 1. **The plan couldn't tell you which pet a task belonged to.** In my first draft the
    Scheduler just took a flat list of tasks, so a plan line could say "Walk" but not
-   "Mochi's walk." With more than one pet that gets confusing. **Change:** I plan to
-   have `build_plan` work from the Owner (or tag each task with its pet's name) so the
-   final plan can say whose task it is. I noted this so I remember it when I write the
-   real logic.
+   "Mochi's walk." With more than one pet that gets confusing. **Change:** I made
+   `build_plan` take the whole **Owner** and added `Owner.get_all_tasks()`, which hands
+   back each task paired with its pet. Now every line of the plan can say whose task it
+   is.
 2. **A task longer than the whole day's time would just silently disappear.** If a
    task takes more minutes than the owner has, the early skeleton would have dropped it
-   with no warning. **Change:** the `explain_plan` method will call out tasks that got
-   left off and why, so nothing vanishes without a reason the owner can see.
+   with no warning. **Change:** `build_plan` now returns both the scheduled tasks *and*
+   a "skipped" list, and `explain_plan` prints a "Left off (not enough time)" section,
+   so nothing vanishes without a reason the owner can see.
 
 These are small but they make the app more honest and easier to trust.
 

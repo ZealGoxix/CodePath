@@ -15,29 +15,35 @@ classDiagram
         +str name
         +str species
         +str breed
-        +list~CareTask~ tasks
+        +list~Task~ tasks
         +add_task(task) None
         +get_tasks() list
+        +pending_tasks() list
+        +task_count() int
     }
 
-    class CareTask {
-        +str title
+    class Task {
+        +str description
+        +str time
+        +str frequency
         +int duration_minutes
         +str priority
         +str category
-        +str preferred_time
+        +bool completed
+        +mark_complete() None
         +priority_score() int
         +is_high_priority() bool
     }
 
     class Scheduler {
         +int minutes_available
-        +build_plan(tasks) list
-        +sort_by_priority(tasks) list
-        +explain_plan(plan) str
+        +get_tasks_from_owner(owner) list
+        +sort_by_priority(pairs) list
+        +build_plan(owner) tuple
+        +explain_plan(owner) str
     }
 
     Owner "1" --> "many" Pet : owns
-    Pet "1" --> "many" CareTask : has
-    Scheduler ..> CareTask : schedules
-    Scheduler ..> Owner : reads time limit from
+    Pet "1" --> "many" Task : has
+    Scheduler ..> Task : schedules
+    Scheduler ..> Owner : reads tasks and time from
