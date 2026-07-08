@@ -38,6 +38,37 @@ My version keeps it simple and goes content-based. It looks at each song's trait
 - target_energy
 - likes_acoustic
 
+**Example taste profile I'll test with:**
+
+```python
+user_prefs = {"genre": "rock", "mood": "intense", "energy": 0.9, "likes_acoustic": False}
+```
+
+This one is an intense rock fan, which is easy to tell apart from a chill lofi listener since the genre, mood, and energy all point in a clear direction.
+
+### My Algorithm Recipe
+
+Here's the scoring rule I'll use for each song:
+
+- +2.0 points if the genre matches
+- +1.0 point if the mood matches
+- energy points from how close the song's energy is to my target: `1 - abs(song_energy - target_energy)`
+- small bonus if `likes_acoustic` is true and the song is fairly acoustic
+
+Then the ranking rule just sorts every song by its total score, high to low, and I take the top K.
+
+### Data Flow
+
+```
+Input (user prefs)
+   -> Process: loop over every song in the CSV and score it
+   -> Output: sort by score and return the top K
+```
+
+### Biases I expect
+
+Since genre is worth the most, the system will probably lean hard on genre and might skip a song that matches my mood and energy perfectly just because it's the "wrong" genre. It also only knows the 18 songs in the catalog, so it can't recommend anything outside that tiny list, and it has no idea about lyrics or language.
+
 ---
 
 ## Getting Started
