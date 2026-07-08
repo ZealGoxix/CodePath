@@ -61,29 +61,92 @@ Prompts:
 
 ## 6. Limitations and Bias 
 
-Where the system struggles or behaves unfairly. 
-
-Prompts:  
-
-- Features it does not consider  
-- Genres or moods that are underrepresented  
-- Cases where the system overfits to one preference  
-- Ways the scoring might unintentionally favor some users  
+The main weakness I found is that my energy score never punishes a bad match, it only adds points. I use `1 - abs(song_energy - target)`, and since energy sits between 0 and 1, every song still walks away with some energy points. So even when nothing really fits the user, the system still hands back a confident top 5. My "sad + high energy" test proved this: "sad" isn't even a mood in my catalog and I gave no genre, so mood and genre could never match, yet the recommender still ranked five high energy songs like they were great picks. It also over-trusts genre, so a pop song with the wrong mood (Gym Hero, which is intense not happy) beats a happy song from another genre. And the catalog is only 18 songs, so a few genres barely show up and the variety is thin.
 
 ---
 
 ## 7. Evaluation  
 
-How you checked whether the recommender behaved as expected. 
+I tested four profiles: High-Energy Pop, Chill Lofi, Deep Intense Rock, and a
+conflicting one (sad mood + high energy). Here's what each one printed.
 
-Prompts:  
+**High-Energy Pop** `{genre: pop, mood: happy, energy: 0.9}`
 
-- Which user profiles you tested  
-- What you looked for in the recommendations  
-- What surprised you  
-- Any simple tests or comparisons you ran  
+```
+1. Sunrise City by Neon Echo  (score 3.92)
+   why: genre match (+2.0), mood match (+1.0), energy close to target (+0.92)
+2. Gym Hero by Max Pulse  (score 2.97)
+   why: genre match (+2.0), energy close to target (+0.97)
+3. Rooftop Lights by Indigo Parade  (score 1.86)
+   why: mood match (+1.0), energy close to target (+0.86)
+4. Storm Runner by Voltline  (score 0.99)
+   why: energy close to target (+0.99)
+5. Voltage Drop by Pulsewave  (score 0.95)
+   why: energy close to target (+0.95)
+```
 
-No need for numeric metrics unless you created some.
+**Chill Lofi** `{genre: lofi, mood: chill, energy: 0.3, likes_acoustic: True}`
+
+```
+1. Library Rain by Paper Lanterns  (score 4.45)
+   why: genre match (+2.0), mood match (+1.0), energy close to target (+0.95), acoustic pick (+0.5)
+2. Midnight Coding by LoRoom  (score 4.38)
+   why: genre match (+2.0), mood match (+1.0), energy close to target (+0.88), acoustic pick (+0.5)
+3. Focus Flow by LoRoom  (score 3.40)
+   why: genre match (+2.0), energy close to target (+0.90), acoustic pick (+0.5)
+4. Spacewalk Thoughts by Orbit Bloom  (score 2.48)
+   why: mood match (+1.0), energy close to target (+0.98), acoustic pick (+0.5)
+5. Moonlit Sonata Redux by Clara Vance  (score 1.50)
+   why: energy close to target (+1.00), acoustic pick (+0.5)
+```
+
+**Deep Intense Rock** `{genre: rock, mood: intense, energy: 0.95}`
+
+```
+1. Storm Runner by Voltline  (score 3.96)
+   why: genre match (+2.0), mood match (+1.0), energy close to target (+0.96)
+2. Gym Hero by Max Pulse  (score 1.98)
+   why: mood match (+1.0), energy close to target (+0.98)
+3. Voltage Drop by Pulsewave  (score 1.00)
+   why: energy close to target (+1.00)
+4. Iron Verdict by Ashen Crown  (score 0.98)
+   why: energy close to target (+0.98)
+5. Sunrise City by Neon Echo  (score 0.87)
+   why: energy close to target (+0.87)
+```
+
+**Conflicting (sad + high energy)** `{mood: sad, energy: 0.95}`
+
+```
+1. Voltage Drop by Pulsewave  (score 1.00)
+   why: energy close to target (+1.00)
+2. Gym Hero by Max Pulse  (score 0.98)
+   why: energy close to target (+0.98)
+3. Iron Verdict by Ashen Crown  (score 0.98)
+   why: energy close to target (+0.98)
+4. Storm Runner by Voltline  (score 0.96)
+   why: energy close to target (+0.96)
+5. Sunrise City by Neon Echo  (score 0.87)
+   why: energy close to target (+0.87)
+```
+
+### What surprised me
+
+Gym Hero kept popping up. For the Happy Pop user it lands at #2 even though the
+song's mood is "intense," not happy. Here's the plain version: my system gives a
+big +2 just for being pop, and Gym Hero is pop with high energy, so those points
+alone push it past songs that actually match the "happy" feeling. It matches the
+label the user asked for (pop) without matching the vibe (happy).
+
+### Comparing the profiles
+
+- **High-Energy Pop vs Chill Lofi:** total opposites, and the output shows it. Pop pulls bright, high energy pop tracks; lofi pulls calm, low energy, acoustic ones. The acoustic bonus only kicks in for the lofi user because they set `likes_acoustic: True`. This is the system working the way I want.
+- **High-Energy Pop vs Deep Intense Rock:** both want high energy, so the bottom of both lists shares the same loud songs (Storm Runner, Voltage Drop). The tops differ because genre splits them: pop songs win for the pop user, rock wins for the rock user. Makes sense.
+- **Chill Lofi vs Conflicting:** the cleanest match vs the messiest. Lofi hits genre, mood, energy, and acoustic all at once and scores over 4. The conflicting profile can't match genre or mood at all, so every song scores around 1 and it just ranks by energy. Same code, but one gets a real recommendation and the other basically gets a coin flip dressed up as a top 5.
+
+### Experiment
+
+I doubled energy's weight and halved genre's (genre 1.0, energy weight 2.0). For the Happy Pop user, off-genre high energy songs like Storm Runner (rock) and Voltage Drop (edm) climbed up the list because genre no longer carried them down. The results got more *different*, not more *accurate*, since I still want a pop fan to mostly hear pop. So I kept my original weights.
 
 ---
 
