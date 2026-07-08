@@ -11,23 +11,32 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+My version takes a list of songs and a little profile of what I'm into, then scores each song on how well it matches me and hands back the top few. It leans on the song's own traits like genre, mood, and energy, so it's a content-based recommender, not one that copies other people's taste.
 
 ---
 
 ## How The System Works
 
-Explain your design in plain language.
+Real platforms like Spotify or YouTube guess what I'll like next in two main ways. One is collaborative filtering, where they look at other people with similar taste and show me what those people liked. The other is content-based filtering, where they look at the song itself, its genre, tempo, mood, and energy, and find more songs that feel the same. They learn from stuff like my likes, skips, replays, and playlists.
 
-Some prompts to answer:
+My version keeps it simple and goes content-based. It looks at each song's traits and compares them to what I said I like, then gives the song a score. Matching my genre is worth the most, then mood, and for energy it rewards songs that land close to my target instead of just picking the loudest ones. After every song has a score, I sort them high to low and take the top few. So there's a scoring rule for one song and a ranking rule to line them all up.
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+**What each `Song` uses:**
 
-You can include a simple diagram or bullet list if helpful.
+- genre
+- mood
+- energy
+- tempo_bpm
+- valence
+- danceability
+- acousticness
+
+**What my `UserProfile` stores:**
+
+- favorite_genre
+- favorite_mood
+- target_energy
+- likes_acoustic
 
 ---
 
