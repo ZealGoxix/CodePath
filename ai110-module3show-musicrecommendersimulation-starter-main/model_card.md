@@ -2,60 +2,52 @@
 
 ## 1. Model Name  
 
-Give your model a short, descriptive name.  
-Example: **VibeFinder 1.0**  
+**VibeFinder 1.0**
 
 ---
 
 ## 2. Intended Use  
 
-Describe what your recommender is designed to do and who it is for. 
+**Goal:** VibeFinder takes what a person says they like (a genre, a mood, and an energy level) and suggests songs from my catalog that fit that vibe. It also tells you why it picked each one.
 
-Prompts:  
+**Who it's for:** this is a classroom project, not a real app. I built it to learn how recommenders turn data into predictions, so it's for exploring the idea, not for actual listeners.
 
-- What kind of recommendations does it generate  
-- What assumptions does it make about the user  
-- Is this for real users or classroom exploration  
+**What it assumes:** it assumes the user can describe their taste in a few simple fields, and that a song's vibe can be captured by its genre, mood, and energy. It also assumes every user knows their favorite genre and mood up front.
+
+**Not intended for:** real music apps, big catalogs, or any decision that actually matters to someone. It has no idea about lyrics, language, artist history, or how your taste changes over time.
 
 ---
 
 ## 3. How the Model Works  
 
-Explain your scoring approach in simple language.  
+Think of it like a points game. Every song starts at zero, then it earns points based on how well it lines up with what you asked for:
 
-Prompts:  
+- Same genre as you want: +2 points. This is the biggest one.
+- Same mood as you want: +1 point.
+- Energy close to your target: up to +1 point. The closer the song's energy is to yours, the more points it gets.
+- If you said you like acoustic songs and the song is pretty acoustic: a small +0.5 bonus.
 
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
+Once every song has a score, I sort them from highest to lowest and hand back the top few. Genre is worth the most on purpose, since I think the genre is the biggest part of a vibe.
 
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
+The starter code just returned the first few songs with no real logic. I filled in the CSV loading, the point scoring, and the sorting, and I made it explain each pick.
 
 ---
 
 ## 4. Data  
 
-Describe the dataset the model uses.  
+My catalog has 18 songs. Each one has a genre, mood, energy, tempo, valence, danceability, and acousticness. The starter came with 10 songs, and I added 8 more to get a wider range.
 
-Prompts:  
+Genres in the set: pop, lofi, rock, ambient, jazz, synthwave, indie pop, hip-hop, country, classical, edm, folk, metal, and reggae. Moods range from happy and chill to intense, angry, romantic, and nostalgic.
 
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+What's missing: it's tiny, so most genres only have one or two songs. There's nothing in other languages, no big global genres like k-pop or afrobeats, and no sense of how popular a song is. So it covers a little bit of a lot, but not much of anything.
 
 ---
 
 ## 5. Strengths  
 
-Where does your system seem to work well  
+It works best when a user gives a clear, matching set of prefs. The Chill Lofi profile is the best example: it asked for lofi, chill, low energy, and acoustic, and the top picks were exactly the calm lofi tracks I'd expect. That one felt right.
 
-Prompts:  
-
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
+It also does a good job stacking reasons. When a song matches genre and mood and energy, it clearly floats to the top, and the "why" line shows all three. And when two users want the same energy but different genres, the genre weight correctly splits them so a rock fan gets rock and a pop fan gets pop.
 
 ---
 
@@ -152,23 +144,18 @@ I doubled energy's weight and halved genre's (genre 1.0, energy weight 2.0). For
 
 ## 8. Future Work  
 
-Ideas for how you would improve the model next.  
+If I kept building this, I'd try:
 
-Prompts:  
-
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+1. Make the energy score able to lose points, so a song that's way off in energy actually gets pushed down instead of still scoring positive.
+2. Add a check so the system says "I don't have a good match" when nothing really fits, instead of always faking a confident top 5.
+3. Grow the catalog and use more features like tempo and valence, so there's more variety and the picks aren't leaning so hard on genre.
 
 ---
 
 ## 9. Personal Reflection  
 
-A few sentences about your experience.  
+My biggest learning moment was realizing a recommendation is really just sorting. Once every song has a score, "recommending" is nothing more than putting them in order and grabbing the top ones. That made the whole thing feel way less magic and way more like a points game I set the rules for.
 
-Prompts:  
+AI tools helped me move fast, especially for the CSV loading and getting the scoring set up cleanly. But I had to double-check the logic, not just trust it. The weights, what counts as a match, and catching that my energy score never actually penalizes a bad song were all things I had to think through myself. The AI could write code, but it couldn't decide what "a good recommendation" means for me.
 
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  
+What surprised me most was how a few simple rules still "feel" like a real recommendation. There's no fancy machine learning here, just add points and sort, and yet the Chill Lofi list looked like something a real app might show me. It made me realize the recommendation apps I use every day are probably built on the same basic idea, just way bigger. If I extended this, I'd want it to learn from what I actually skip and replay, instead of me having to tell it my taste up front.
