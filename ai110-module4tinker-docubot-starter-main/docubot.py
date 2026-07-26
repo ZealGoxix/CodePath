@@ -9,6 +9,21 @@ Core DocuBot class responsible for:
 
 import os
 import glob
+import string
+
+# Common filler words that carry no topic meaning. Ignoring these keeps
+# relevance based on real content words (auth, database, token) instead of
+# matching on words like "the" or "is" that appear in every document.
+STOPWORDS = {
+    "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
+    "do", "does", "did", "to", "of", "in", "on", "for", "and", "or", "but",
+    "if", "then", "there", "here", "any", "some", "how", "what", "which",
+    "who", "when", "where", "why", "i", "you", "it", "this", "that", "these",
+    "those", "my", "your", "with", "as", "at", "by", "from", "into", "about",
+    "can", "will", "would", "should", "could", "me", "we", "they", "them",
+    "docs", "doc", "documentation", "mention", "mentioned",
+}
+
 
 class DocuBot:
     def __init__(self, docs_folder="docs", llm_client=None):
@@ -45,6 +60,44 @@ class DocuBot:
         return docs
 
     # -----------------------------------------------------------
+    # Tokenization helper
+    # -----------------------------------------------------------
+
+    def tokenize(self, text):
+        """
+        Split text into lowercase words, stripping surrounding punctuation.
+        Example: "POST /api/login." -> ["post", "api/login"]
+        Shared by build_index and score_document so they agree on words.
+        """
+        tokens = []
+        for raw in text.lower().split():
+            word = raw.strip(string.punctuation)
+            if word:
+                tokens.append(word)
+        return tokens
+
+    def query_terms(self, query):
+        """
+        The meaningful content words in a query: tokenized, with stopwords
+        removed. These are the only words that count toward relevance.
+        Example: "How do I connect to the database?" -> {"connect", "database"}
+        """
+        return {word for word in self.tokenize(query) if word not in STOPWORDS}
+
+    def split_paragraphs(self, text):
+        """
+        Break a document into paragraphs on blank lines. Paragraphs are the
+        unit of retrieval, so a snippet is one focused section rather than a
+        whole file. Blank/whitespace-only chunks are dropped.
+        """
+        paragraphs = []
+        for chunk in text.split("\n\n"):
+            cleaned = chunk.strip()
+            if cleaned:
+                paragraphs.append(cleaned)
+        return paragraphs
+
+    # -----------------------------------------------------------
     # Index Construction (Phase 1)
     # -----------------------------------------------------------
 
@@ -64,7 +117,12 @@ class DocuBot:
         ignore punctuation if needed.
         """
         index = {}
-        # TODO: implement simple indexing
+        for filename, text in documents:
+            # Use a set so each file is recorded once per word.
+            for word in set(self.tokenize(text)):
+                if word not in index:
+                    index[word] = []
+                index[word].append(filename)
         return index
 
     # -----------------------------------------------------------
@@ -81,18 +139,50 @@ class DocuBot:
         - Count how many appear in the text
         - Return the count as the score
         """
-        # TODO: implement scoring
-        return 0
+        query_words = self.query_terms(query)
+        text_words = set(self.tokenize(text))
+        # Score = how many distinct content words from the query appear here.
+        # Stopwords are excluded, so filler words never inflate the score.
+        return len(query_words & text_words)
 
     def retrieve(self, query, top_k=3):
         """
-        TODO (Phase 1):
-        Use the index and scoring function to select top_k relevant document snippets.
+        Select up to top_k relevant *paragraphs* (not whole documents).
 
-        Return a list of (filename, text) sorted by score descending.
+        Pipeline:
+        1. Use the index to find candidate files sharing a query content word.
+        2. Split each candidate into paragraphs and score each paragraph.
+        3. Keep only paragraphs with a positive score (the guardrail), sort by
+           score descending, and return the best top_k as (filename, text).
+
+        If the query has no meaningful content words, or no paragraph matches,
+        this returns an empty list so the caller refuses to answer.
         """
-        results = []
-        # TODO: implement retrieval logic
+        terms = self.query_terms(query)
+        # Guardrail: a query of only filler words gives us nothing to match on.
+        if not terms:
+            return []
+
+        # Use the index to find candidate files: any doc with a query term.
+        candidates = set()
+        for word in terms:
+            for filename in self.index.get(word, []):
+                candidates.add(filename)
+
+        # Score each paragraph inside the candidate documents.
+        scored = []
+        for filename, text in self.documents:
+            if filename not in candidates:
+                continue
+            for paragraph in self.split_paragraphs(text):
+                score = self.score_document(query, paragraph)
+                # Guardrail: drop paragraphs with no content-word overlap.
+                if score > 0:
+                    scored.append((score, filename, paragraph))
+
+        # Sort by score descending, then return top_k as (filename, text).
+        scored.sort(key=lambda item: item[0], reverse=True)
+        results = [(filename, paragraph) for _score, filename, paragraph in scored]
         return results[:top_k]
 
     # -----------------------------------------------------------
