@@ -1,174 +1,164 @@
-# 🎵 Music Recommender Simulation
+# Music Recommender Simulation
 
-## Project Summary
+## The original project (Modules 1-3)
 
-In this project you will build and explain a small music recommender system.
+The Music Recommender Simulation is a small content-based recommender I built for Modules 1-3. It takes a user "taste profile" (favorite genre, mood, target energy) and scores every song in a CSV catalog against it, then returns the top few with a short reason for each pick. It is content-based, not collaborative: it looks at each song's own traits instead of copying other people's taste.
 
-Your goal is to:
+## The extended system: RAG music recommender
 
-- Represent songs and a user "taste profile" as data
-- Design a scoring rule that turns that data into recommendations
-- Evaluate what your system gets right and wrong
-- Reflect on how this mirrors real world AI recommenders
+For this Applied AI project I added a Retrieval-Augmented Generation (RAG) path on top of that scorer. Instead of filling in a rigid genre/mood/energy form, I can now type a plain-English request like "calm piano for late night studying." The system retrieves the most relevant songs from the catalog, then generates a short, grounded recommendation that only ever talks about songs it actually retrieved. It scores its own confidence and refuses to guess when nothing in the catalog is a strong match.
 
-My version takes a list of songs and a little profile of what I'm into, then scores each song on how well it matches me and hands back the top few. It leans on the song's own traits like genre, mood, and energy, so it's a content-based recommender, not one that copies other people's taste.
+The original scorer still works unchanged, so I can compare the two side by side.
 
----
+## Architecture overview
 
-## How The System Works
+The Mermaid source is in [diagrams/architecture.mmd](diagrams/architecture.mmd). The flow follows the two letters of RAG plus a guardrail:
 
-Real platforms like Spotify or YouTube guess what I'll like next in two main ways. One is collaborative filtering, where they look at other people with similar taste and show me what those people liked. The other is content-based filtering, where they look at the song itself, its genre, tempo, mood, and energy, and find more songs that feel the same. They learn from stuff like my likes, skips, replays, and playlists.
+1. **Input.** A free-text query (RAG path) or a structured prefs dict (classic path).
+2. **Retrieve** ([src/rag.py](src/rag.py)). Each song is flattened into a searchable text document from its title, artist, genre, mood, an energy descriptor, and hand-written tags. A pure-Python TF-IDF + cosine similarity retriever ranks those documents against the query and returns the top-k with match scores. No network, no heavy libraries, so retrieval is deterministic.
+3. **Guardrail + confidence** ([src/generator.py](src/generator.py)). Retrieval strength is turned into a 0-1 confidence score. If it falls below a floor (or nothing was retrieved), the system refuses instead of bluffing.
+4. **Generate** ([src/generator.py](src/generator.py)). The retrieved songs (and only those) are handed to the generator. If a `GEMINI_API_KEY` is set it uses Gemini with a prompt that forbids inventing songs, then runs a grounding check on the output. Otherwise it uses a deterministic offline template generator. Either way the answer ends with catalog citations.
+5. **Output.** A grounded recommendation with its confidence and citations, or a refusal.
+6. **Testing / human checkpoints.** [tests/](tests/) unit-tests retrieval and the guardrail, [eval/eval_rag.py](eval/eval_rag.py) runs a labeled query set and writes [eval/eval_report.md](eval/eval_report.md) for human review.
 
-My version keeps it simple and goes content-based. It looks at each song's traits and compares them to what I said I like, then gives the song a score. Matching my genre is worth the most, then mood, and for energy it rewards songs that land close to my target instead of just picking the loudest ones. After every song has a score, I sort them high to low and take the top few. So there's a scoring rule for one song and a ranking rule to line them all up.
+## Setup and run
 
-**What each `Song` uses:**
+From the project root (`ai110-module3show-musicrecommendersimulation-starter-main`):
 
-- genre
-- mood
-- energy
-- tempo_bpm
-- valence
-- danceability
-- acousticness
-
-**What my `UserProfile` stores:**
-
-- favorite_genre
-- favorite_mood
-- target_energy
-- likes_acoustic
-
-**Example taste profile I'll test with:**
-
-```python
-user_prefs = {"genre": "rock", "mood": "intense", "energy": 0.9, "likes_acoustic": False}
-```
-
-This one is an intense rock fan, which is easy to tell apart from a chill lofi listener since the genre, mood, and energy all point in a clear direction.
-
-### My Algorithm Recipe
-
-Here's the scoring rule I'll use for each song:
-
-- +2.0 points if the genre matches
-- +1.0 point if the mood matches
-- energy points from how close the song's energy is to my target: `1 - abs(song_energy - target_energy)`
-- small bonus if `likes_acoustic` is true and the song is fairly acoustic
-
-Then the ranking rule just sorts every song by its total score, high to low, and I take the top K.
-
-### Data Flow
-
-```
-Input (user prefs)
-   -> Process: loop over every song in the CSV and score it
-   -> Output: sort by score and return the top K
-```
-
-### Biases I expect
-
-Since genre is worth the most, the system will probably lean hard on genre and might skip a song that matches my mood and energy perfectly just because it's the "wrong" genre. It also only knows the 18 songs in the catalog, so it can't recommend anything outside that tiny list, and it has no idea about lyrics or language.
-
----
-
-## Getting Started
-
-### Setup
-
-1. Create a virtual environment (optional but recommended):
+1. (Optional) create a virtual environment:
 
    ```bash
    python -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+   ```
 
-2. Install dependencies
+2. Install dependencies (the RAG feature runs fully offline on the standard library):
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run the demo (classic scorer + RAG queries):
+
+   ```bash
+   python -m src.main
+   ```
+
+4. Run a single free-text query:
+
+   ```bash
+   python -m src.main --query "calm piano for late night studying"
+   ```
+
+   Useful flags: `--no-llm` forces the offline generator, `--classic` runs only the original scorer, `--k N` sets how many songs to retrieve, `--verbose` shows the retrieval/generation logs.
+
+5. Run the evaluation harness:
+
+   ```bash
+   python -m eval.eval_rag
+   ```
+
+6. Run the tests:
+
+   ```bash
+   pytest
+   ```
+
+### Turning on the LLM generation path (optional)
+
+The system generates with a deterministic offline template by default. To use Gemini instead, install the optional client and set a key:
 
 ```bash
-pip install -r requirements.txt
+pip install google-genai
+export GEMINI_API_KEY=your_key_here      # Windows: set GEMINI_API_KEY=your_key_here
+python -m src.main --query "chill tropical beach vibes"
 ```
 
-3. Run the app:
+If the key or package is missing, or a Gemini call fails, or the model's answer fails the grounding check, the system automatically falls back to the offline generator. The sample outputs below use the offline path so they are reproducible without a key.
 
-```bash
-python -m src.main
-```
+## Sample inputs and outputs
 
-### Running Tests
+These are real command outputs, not screenshots.
 
-Run the starter tests with:
-
-```bash
-pytest
-```
-
-You can add more tests in `tests/test_recommender.py`.
-
----
-
-## Sample Recommendation Output
-
-Here's what mine prints for the default pop, happy, energy 0.8 profile:
+**1. A workout query (good match, high confidence):**
 
 ```
-Loaded songs: 18
+$ python -m src.main -q "high energy music for the gym" --no-llm
+Loaded songs: 28
 
-Top recommendations:
+=== RAG query: 'high energy music for the gym' ===
+[confidence: 0.644 (high) | generator: offline-template]
 
-1. Sunrise City by Neon Echo  (score 3.98)
-   why: genre match (+2.0), mood match (+1.0), energy close to target (+0.98)
+For "high energy music for the gym", my top pick is Gym Hero by Max Pulse.
+It lines up on: energy, gym, high.
+You might also like: Voltage Drop (edm), Sugar Rush (pop).
 
-2. Gym Hero by Max Pulse  (score 2.87)
-   why: genre match (+2.0), energy close to target (+0.87)
-
-3. Rooftop Lights by Indigo Parade  (score 1.96)
-   why: mood match (+1.0), energy close to target (+0.96)
-
-4. Concrete Kings by Blocktape  (score 1.00)
-   why: energy close to target (+1.00)
-
-5. Night Drive Loop by Neon Echo  (score 0.95)
-   why: energy close to target (+0.95)
+Grounded in these catalog songs:
+- Gym Hero by Max Pulse [pop, intense, energy 0.93] (match 0.544)
+- Voltage Drop by Pulsewave [edm, energetic, energy 0.95] (match 0.167)
+- Sugar Rush by Neon Echo [pop, happy, energy 0.86] (match 0.099)
 ```
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
+**2. A romantic query (retrieves the r&b cluster):**
 
----
+```
+$ python -m src.main -q "smooth romantic song for a date" --no-llm
+Loaded songs: 28
 
-## Experiments You Tried
+=== RAG query: 'smooth romantic song for a date' ===
+[confidence: 0.527 (high) | generator: offline-template]
 
-Use this section to document the experiments you ran. For example:
+For "smooth romantic song for a date", my top pick is Firelight Waltz by Velvet Room.
+It lines up on: date, romantic, smooth.
+You might also like: Slow Dance Tonight (r&b), Coffee Shop Stories (jazz).
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+Grounded in these catalog songs:
+- Firelight Waltz by Velvet Room [r&b, romantic, energy 0.48] (match 0.427)
+- Slow Dance Tonight by Velvet Room [r&b, romantic, energy 0.50] (match 0.406)
+- Coffee Shop Stories by Slow Stereo [jazz, relaxed, energy 0.37] (match 0.114)
+```
 
----
+**3. A nonsense query (guardrail refuses instead of guessing):**
 
-## Limitations and Risks
+```
+$ python -m src.main -q "purple elephant tax spreadsheet" --no-llm
+Loaded songs: 28
 
-Summarize some limitations of your recommender.
+=== RAG query: 'purple elephant tax spreadsheet' ===
+[confidence: 0.000 (none) | generator: offline-template | REFUSED]
 
-Examples:
+I couldn't find a strong match for that in the catalog, so I'd rather not guess. Try describing a mood, activity, or genre (for example: 'calm piano for studying').
+```
 
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
+## Design decisions and trade-offs
 
-You will go deeper on this in your model card.
+- **Pure-Python TF-IDF instead of embeddings or a vector DB.** I wanted retrieval to be deterministic, testable, and installable with zero heavy dependencies. The trade-off is that matching is lexical: a query has to share words with a song's tags, so I lean on a hand-written `tags` column to carry synonyms. Real embeddings would catch meaning I miss, at the cost of reproducibility and setup weight.
+- **LLM generation is optional with an offline fallback.** The real RAG story uses an LLM to write the recommendation, but forcing an API key would break reproducibility and grading. So the LLM path is opt-in and the offline template generator is always available. The downside is the default output reads more like a template than natural prose.
+- **Grounding is enforced, not assumed.** The offline generator is grounded by construction, and the LLM path is prompted to stay in the retrieved set and then checked; if it names a song it was not given, I drop back to the offline answer. This trades some LLM fluency for a guarantee that the user never sees a made-up song.
+- **A confidence floor that refuses.** I would rather return nothing than a wrong pick, so weak retrieval becomes a refusal. The risk is being too cautious on oddly-worded but valid queries, which is exactly what the eval set watches.
 
----
+## Testing summary
+
+Two layers of checks, both run offline and deterministically.
+
+**Unit tests** (`pytest`): 12/12 passing. They cover tokenization, document building, retrieval ranking and ordering, the empty result for nonsense, confidence banding, the refusal guardrail, and that generated answers only name retrieved songs.
+
+**Evaluation harness** (`python -m eval.eval_rag`): 6/6 cases passing. Each case checks retrieval hit-rate (did the expected song show up in top-k), grounding (no hallucinated titles), and, for the nonsense case, that the guardrail correctly refuses. The full input / criteria / result table is written to [eval/eval_report.md](eval/eval_report.md).
+
+```
+$ python -m eval.eval_rag --no-llm
+RAG evaluation (offline-template):
+  [PASS] 'high energy music for the gym' -> ok
+  [PASS] 'calm piano for late night studying' -> ok
+  [PASS] 'smooth romantic song for a date night' -> ok
+  [PASS] 'aggressive heavy metal to get pumped' -> ok
+  [PASS] 'chill tropical beach vibes' -> ok
+  [PASS] 'purple elephant tax spreadsheet' -> correctly refused
+
+6/6 cases passed.
+```
 
 ## Reflection
 
-Read and complete `model_card.md`:
-
-[**Model Card**](model_card.md)
-
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
-
-
-
+The development reflection, including how I used AI, one helpful and one flawed AI suggestion, and the system's limitations, is in [model_card.md](model_card.md).
