@@ -1,0 +1,62 @@
+%% Music Recommender Simulation + RAG feature
+%% Shows input -> processing -> output, and where human/testing checkpoints sit.
+%% Matches the implementation in src/ and eval/.
+flowchart TD
+    subgraph INPUT["Input"]
+        Q["Free-text query<br/>(e.g. 'calm piano for studying')"]
+        P["Structured prefs<br/>(genre / mood / energy) — classic path"]
+    end
+
+    subgraph DATA["Catalog data"]
+        CSV["data/songs.csv<br/>28 songs + descriptive tags"]
+    end
+
+    subgraph RETRIEVE["Retrieve  (src/rag.py)"]
+        DOC["song_to_document()<br/>song -> searchable text"]
+        IDX["SongRetriever<br/>TF-IDF + cosine similarity"]
+        TOPK["Top-k relevant songs<br/>+ match scores"]
+    end
+
+    subgraph GUARD["Guardrail + confidence  (src/generator.py)"]
+        CONF["score_confidence()<br/>from retrieval strength"]
+        GATE{"confidence >= floor?"}
+    end
+
+    subgraph GENERATE["Generate  (src/generator.py)"]
+        LLM["Gemini (if GEMINI_API_KEY set)<br/>prompt = retrieved songs only"]
+        OFF["Offline template generator<br/>deterministic, grounded"]
+        GCHK{"grounding check:<br/>only names retrieved songs?"}
+    end
+
+    subgraph OUTPUT["Output"]
+        REC["Grounded recommendation<br/>+ confidence + citations"]
+        REFUSE["Refusal:<br/>'no strong match, won't guess'"]
+        CLASSIC["Classic ranked list<br/>(recommend_songs)"]
+    end
+
+    subgraph CHECK["Testing / human checkpoints"]
+        EVAL["eval/eval_rag.py<br/>hit-rate + grounding + refusal<br/>-> eval/eval_report.md"]
+        PYTEST["tests/ (pytest)<br/>retrieval + guardrail + grounding"]
+        HUMAN["Human review of<br/>eval_report.md table"]
+    end
+
+    Q --> DOC
+    CSV --> DOC
+    DOC --> IDX --> TOPK --> CONF --> GATE
+    GATE -- no --> REFUSE
+    GATE -- yes --> LLM
+    GATE -- yes --> OFF
+    LLM --> GCHK
+    GCHK -- fails --> OFF
+    GCHK -- ok --> REC
+    OFF --> REC
+
+    P --> CLASSIC
+    CSV --> CLASSIC
+
+    TOPK -.checked by.-> EVAL
+    REC -.checked by.-> EVAL
+    REFUSE -.checked by.-> EVAL
+    IDX -.unit tested.-> PYTEST
+    OFF -.unit tested.-> PYTEST
+    EVAL --> HUMAN
