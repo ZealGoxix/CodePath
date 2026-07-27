@@ -23,6 +23,7 @@ class Song:
     valence: float
     danceability: float
     acousticness: float
+    tags: str = ""
 
 
 @dataclass
