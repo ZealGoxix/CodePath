@@ -35,7 +35,7 @@ The starter code just returned the first few songs with no real logic. I filled 
 
 ## 4. Data  
 
-My catalog has 18 songs. Each one has a genre, mood, energy, tempo, valence, danceability, and acousticness. The starter came with 10 songs, and I added 8 more to get a wider range.
+My catalog started at 18 songs. Each one has a genre, mood, energy, tempo, valence, danceability, and acousticness. The starter came with 10 songs, and I added 8 more to get a wider range. For the Applied AI extension (Part 10) I grew it to 28 songs and added a free-text `tags` column so the retriever has real words to match against.
 
 Genres in the set: pop, lofi, rock, ambient, jazz, synthwave, indie pop, hip-hop, country, classical, edm, folk, metal, and reggae. Moods range from happy and chill to intense, angry, romantic, and nostalgic.
 
@@ -159,3 +159,28 @@ My biggest learning moment was realizing a recommendation is really just sorting
 AI tools helped me move fast, especially for the CSV loading and getting the scoring set up cleanly. But I had to double-check the logic, not just trust it. The weights, what counts as a match, and catching that my energy score never actually penalizes a bad song were all things I had to think through myself. The AI could write code, but it couldn't decide what "a good recommendation" means for me.
 
 What surprised me most was how a few simple rules still "feel" like a real recommendation. There's no fancy machine learning here, just add points and sort, and yet the Chill Lofi list looked like something a real app might show me. It made me realize the recommendation apps I use every day are probably built on the same basic idea, just way bigger. If I extended this, I'd want it to learn from what I actually skip and replay, instead of me having to tell it my taste up front.
+
+---
+
+## 10. Applied AI Extension: the RAG recommender (reflection)
+
+This section is the reflection for the Applied AI project. The original scorer above stays the same. On top of it I added a Retrieval-Augmented Generation path so I can ask for music in plain English ("calm piano for late night studying") instead of filling in a genre/mood/energy form. It retrieves the closest songs from the catalog, generates a short recommendation grounded only in those songs, scores its own confidence, and refuses when nothing fits.
+
+### What I built and why it counts as RAG
+
+The "retrieve" step turns every song into a small text document and ranks them against my query with TF-IDF and cosine similarity ([src/rag.py](src/rag.py)). The "generate" step only ever sees the retrieved songs and writes the recommendation from them ([src/generator.py](src/generator.py)). That retrieve-then-generate order, plus a rule that the answer can only name songs that were retrieved, is what makes it real RAG and not just search or just generation.
+
+### How I used AI during development
+
+I used an AI coding assistant to build the extension. I gave it the existing recommender and asked it to add a RAG path that stays reproducible and testable. It drafted the TF-IDF retriever, the confidence-and-refusal guardrail, the offline vs LLM generator split, the eval harness, and the tests. I made the design calls: keep retrieval pure-Python and offline, make the LLM optional, and enforce grounding instead of trusting it. I also reused the Gemini client pattern from my Module 4 DocuBot so the LLM path matched something I already understood.
+
+**One helpful AI suggestion.** The assistant suggested I not use the LLM output blindly, and instead run a grounding check that confirms the generated answer only names songs that were actually retrieved, and fall back to the deterministic generator if it drifts. That closed the exact hole that makes RAG demos fail, a model quietly inventing a song that sounds right but isn't in the catalog. It turned "trust the model" into "verify the model," which is the whole point of a reliability harness.
+
+**One flawed AI suggestion.** Early on it wanted to pad retrieval so it always returned k songs even when a query matched nothing, so the output never looked empty. That directly fights the guardrail I wanted: if I always return 3 songs, "purple elephant tax spreadsheet" gets a confident top 3 and the refusal path is dead code. I overrode it so retrieval drops zero-overlap songs and can return fewer than k (or none), which is what lets the confidence floor actually refuse. It was optimizing for a full-looking screen instead of an honest answer.
+
+### Limitations of the extended system
+
+- **Lexical, not semantic, retrieval.** TF-IDF only matches shared words, so it leans on my hand-written tags. A query like "music for a rainy commute" only works if those words (or close ones) appear in a song's tags. Real embeddings would understand meaning, but I traded that away for reproducibility and a tiny install.
+- **The offline generator is templated.** Without an API key the recommendation reads like a filled-in sentence, not natural prose. The LLM path fixes the tone but needs a key and a network, so it is off by default.
+- **Small catalog, thin tags.** 28 songs is still tiny, and retrieval quality is only as good as the tags I wrote. A word I forgot to tag is a match the system can't make.
+- **The confidence score is a proxy.** It comes from retrieval strength, not from any judgment about whether the song is actually good for the request. A well-tagged but wrong song could still score "high." The eval set is what keeps me honest about that.
