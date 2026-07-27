@@ -170,17 +170,37 @@ This section is the reflection for the Applied AI project. The original scorer a
 
 The "retrieve" step turns every song into a small text document and ranks them against my query with TF-IDF and cosine similarity ([src/rag.py](src/rag.py)). The "generate" step only ever sees the retrieved songs and writes the recommendation from them ([src/generator.py](src/generator.py)). That retrieve-then-generate order, plus a rule that the answer can only name songs that were retrieved, is what makes it real RAG and not just search or just generation.
 
-### How I used AI during development
+## 11. Responsible AI Reflection
+
+These are the responsible-AI questions for the Applied AI project, each under its own header.
+
+### What are the limitations or biases in the system?
+
+- **Lexical, not semantic, retrieval.** TF-IDF only matches shared words, so it leans on my hand-written tags. A query like "music for a rainy commute" only works if those words (or close ones) appear in a song's tags. Real embeddings would understand meaning, but I traded that away for reproducibility and a tiny install.
+- **Tagging bias is my bias.** I wrote every tag by hand, so the system inherits my vocabulary and my genre knowledge. Words and scenes I didn't think to tag are matches the system simply cannot make, and that gap is not spread evenly across genres.
+- **Popularity and culture gaps carried over from the base system.** The catalog is 28 English-language songs with no k-pop, afrobeats, regional, or non-English music, and no sense of what is actually popular. So it can only recommend inside a narrow slice of taste.
+- **The offline generator is templated.** Without an API key the recommendation reads like a filled-in sentence, not natural prose. The LLM path fixes the tone but needs a key and a network, so it is off by default.
+- **The confidence score is a proxy.** It comes from retrieval strength, not from any judgment about whether the song is actually good for the request. A well-tagged but wrong song could still score "high." The eval set is what keeps me honest about that.
+
+### Could this AI be misused, and how would I prevent that?
+
+I can see a few realistic ways this kind of system gets misused, and what I built (or would build) against each:
+
+- **Hallucinated recommendations passed off as real.** If the LLM invents a song or artist, a user could act on something that does not exist. Prevention: the generator is only allowed to name songs that were retrieved, and the LLM output runs through a grounding check that falls back to the deterministic generator if it drifts. The model can't recommend outside the catalog.
+- **Fake confidence on a bad match.** A system that always returns a confident answer can nudge people toward things that don't fit them. Prevention: the confidence floor makes weak retrieval refuse instead of guessing, so the system says "I don't have a good match" rather than bluffing.
+- **Prompt injection through the query or tags.** Because a free-text query is fed into an LLM prompt, someone could try to smuggle instructions in. Prevention today: the offline path never calls a model at all, and the LLM prompt is constrained to the retrieved rows. If I productionized it I would add input sanitization and cap query length.
+- **Scaling the taste bias.** If this grew into a real recommender, the tagging bias above would quietly steer many listeners. Prevention: keep a human-reviewed eval set (like `eval/eval_report.md`) and watch for whole genres or moods that never surface.
+
+### What surprised me while testing the AI's reliability?
+
+The biggest surprise was that the refusal guardrail was harder to keep alive than the recommendations. My first instinct (and the AI's first suggestion) was to always return the top k songs so the output never looked empty. When I tested a nonsense query like "purple elephant tax spreadsheet," that "always full" behavior handed back three confident songs for a query that means nothing. The system looked more broken when it was trying to look complete. Making retrieval able to return *nothing*, and letting the confidence floor turn that into an honest refusal, was what actually made it reliable. It flipped my thinking: reliability was less about better matches and more about the system knowing when to say no.
+
+The second surprise was how much retrieval quality rode on my tags rather than the model. A query worked or failed based on words I had written days earlier, not on anything clever at generation time. That made "garbage in, garbage out" very concrete.
+
+### My collaboration with AI during this project
 
 I used an AI coding assistant to build the extension. I gave it the existing recommender and asked it to add a RAG path that stays reproducible and testable. It drafted the TF-IDF retriever, the confidence-and-refusal guardrail, the offline vs LLM generator split, the eval harness, and the tests. I made the design calls: keep retrieval pure-Python and offline, make the LLM optional, and enforce grounding instead of trusting it. I also reused the Gemini client pattern from my Module 4 DocuBot so the LLM path matched something I already understood.
 
 **One helpful AI suggestion.** The assistant suggested I not use the LLM output blindly, and instead run a grounding check that confirms the generated answer only names songs that were actually retrieved, and fall back to the deterministic generator if it drifts. That closed the exact hole that makes RAG demos fail, a model quietly inventing a song that sounds right but isn't in the catalog. It turned "trust the model" into "verify the model," which is the whole point of a reliability harness.
 
 **One flawed AI suggestion.** Early on it wanted to pad retrieval so it always returned k songs even when a query matched nothing, so the output never looked empty. That directly fights the guardrail I wanted: if I always return 3 songs, "purple elephant tax spreadsheet" gets a confident top 3 and the refusal path is dead code. I overrode it so retrieval drops zero-overlap songs and can return fewer than k (or none), which is what lets the confidence floor actually refuse. It was optimizing for a full-looking screen instead of an honest answer.
-
-### Limitations of the extended system
-
-- **Lexical, not semantic, retrieval.** TF-IDF only matches shared words, so it leans on my hand-written tags. A query like "music for a rainy commute" only works if those words (or close ones) appear in a song's tags. Real embeddings would understand meaning, but I traded that away for reproducibility and a tiny install.
-- **The offline generator is templated.** Without an API key the recommendation reads like a filled-in sentence, not natural prose. The LLM path fixes the tone but needs a key and a network, so it is off by default.
-- **Small catalog, thin tags.** 28 songs is still tiny, and retrieval quality is only as good as the tags I wrote. A word I forgot to tag is a match the system can't make.
-- **The confidence score is a proxy.** It comes from retrieval strength, not from any judgment about whether the song is actually good for the request. A well-tagged but wrong song could still score "high." The eval set is what keeps me honest about that.

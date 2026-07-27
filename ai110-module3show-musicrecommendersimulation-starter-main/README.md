@@ -159,6 +159,30 @@ RAG evaluation (offline-template):
 6/6 cases passed.
 ```
 
+## Reproducible execution evidence
+
+Everything above under **Sample inputs and outputs** and **Testing summary** is real command output, copied from my terminal, so the system can be graded without watching a video. In one place, the evidence covers:
+
+- **Sample command executions:** `python -m src.main -q "..."`, `python -m eval.eval_rag`, `pytest`.
+- **Example inputs:** free-text queries like `"high energy music for the gym"` and the nonsense query `"purple elephant tax spreadsheet"`.
+- **Example outputs:** the grounded recommendations with confidence and catalog citations shown above.
+- **Reliability / guardrail results:** the refusal on the nonsense query, the `6/6` eval table in [eval/eval_report.md](eval/eval_report.md), and `12/12` passing unit tests.
+
+To regenerate all of it from scratch:
+
+```bash
+pytest
+python -m eval.eval_rag --no-llm
+python -m src.main --no-llm
+```
+
+## Portfolio and presentation
+
+- **Code (GitHub):** https://github.com/ZealGoxix/CodePath/tree/master/ai110-module3show-musicrecommendersimulation-starter-main
+- **Presentation:** a 5-7 minute walkthrough of the system, a live demo, and what I learned (see [presentation_prompt.md](presentation_prompt.md) for the outline and demo script).
+
+**What this project says about me as an AI engineer.** I care less about making an AI look impressive and more about making it honest. The most important thing I added here was not the recommendations, it was the guardrail that refuses to answer when the system isn't sure, and the grounding check that stops the model from inventing songs. I also chose a design that stays reproducible and testable with zero API keys, because I think work that other people can run and verify is worth more than a demo that only runs on my machine. This project shows I can take a working system, extend it with a real AI feature, and wrap that feature in the reliability checks that decide whether it can be trusted.
+
 ## Reflection
 
-The development reflection, including how I used AI, one helpful and one flawed AI suggestion, and the system's limitations, is in [model_card.md](model_card.md).
+The development reflection, including how I used AI, one helpful and one flawed AI suggestion, the system's limitations and biases, possible misuse and how I prevent it, and what surprised me while testing reliability, is in [model_card.md](model_card.md) (Sections 10 and 11).
