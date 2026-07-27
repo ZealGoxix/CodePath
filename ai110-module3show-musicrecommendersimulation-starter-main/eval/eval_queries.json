@@ -1,0 +1,32 @@
+[
+  {
+    "query": "high energy music for the gym",
+    "criteria": "top hit should be a workout/high-energy track",
+    "expected_any_of": ["Gym Hero", "Neon Marathon", "Voltage Drop"]
+  },
+  {
+    "query": "calm piano for late night studying",
+    "criteria": "top hit should be a calm study/piano track",
+    "expected_any_of": ["Midnight Coding", "Glass Cathedral", "Moonlit Sonata Redux", "Focus Flow", "Deadline Sprint"]
+  },
+  {
+    "query": "smooth romantic song for a date night",
+    "criteria": "top hit should be a romantic r&b track",
+    "expected_any_of": ["Firelight Waltz", "Slow Dance Tonight"]
+  },
+  {
+    "query": "aggressive heavy metal to get pumped",
+    "criteria": "top hit should be an aggressive metal/rock track",
+    "expected_any_of": ["Iron Verdict", "Storm Runner", "Static Bloom"]
+  },
+  {
+    "query": "chill tropical beach vibes",
+    "criteria": "top hit should be a reggae/tropical track",
+    "expected_any_of": ["Island Time", "Canyon Drive"]
+  },
+  {
+    "query": "purple elephant tax spreadsheet",
+    "criteria": "nonsense query should be refused (no confident match)",
+    "expected_any_of": []
+  }
+]
